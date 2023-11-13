@@ -1,0 +1,103 @@
+{
+  "name": "hexdiff",
+  "displayName": "hexdiff",
+  "description": "compare two binary files",
+  "version": "1.0.231114",
+  "license": "LICENSE",
+  "bugs": {
+    "url": "https://github.com/sj0000e/vscode-hexdiff/issues"
+  },
+  "homepage": "https://github.com/sj0000e/vscode-hexdiff",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sj0000e/vscode-hexdiff.git"
+  },
+  "engines": {
+    "vscode": "^1.84.0"
+  },
+  "keywords": [
+    "vscode",
+    "hexdiff",
+    "hexadecimal"
+  ],
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "hexdiff.compare",
+        "title": "Compare Selected(Hexdiff)"
+      },
+      {
+        "command": "hexdiff.previous",
+        "title": "Go to previous difference",
+        "icon": "$(arrow-up)"
+      },
+      {
+        "command": "hexdiff.next",
+        "title": "Go to next difference",
+        "icon": "$(arrow-down)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "hexdiff.previous",
+        "key": "F7",
+        "mac": "F7",
+        "when": "editorTextFocus && resourceScheme =~ /^hexdiff/"
+      },
+      {
+        "command": "hexdiff.next",
+        "key": "F8",
+        "mac": "F8",
+        "when": "editorTextFocus && resourceScheme =~ /^hexdiff/"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "hexdiff.compare",
+          "group": "3_compare",
+          "when": "listDoubleSelection"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "hexdiff.previous",
+          "title": "previous",
+          "group": "navigation",
+          "when": "resourceScheme =~ /^hexdiff/"
+        },
+        {
+          "command": "hexdiff.next",
+          "title": "next",
+          "group": "navigation",
+          "when": "resourceScheme =~ /^hexdiff/"
+         }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.84.0",
+    "@types/mocha": "^10.0.2",
+    "@types/node": "18.x",
+    "@typescript-eslint/eslint-plugin": "^6.7.3",
+    "@typescript-eslint/parser": "^6.7.3",
+    "eslint": "^8.50.0",
+    "glob": "^10.3.3",
+    "mocha": "^10.2.0",
+    "typescript": "^5.2.2",
+    "@vscode/test-electron": "^2.3.4"
+  }
+}
