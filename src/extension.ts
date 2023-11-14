@@ -3,7 +3,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 export function activate(context: vscode.ExtensionContext) {
-	const bytePerLine = 16;
+	const config = vscode.workspace.getConfiguration('hexdiff');
+	let bytesPerLine = config['bytesPerLine'];
+	let isDrawUnderscore = config['isDrawUnderscore'];
+
 	const hexDictionary = new Array(256);
 	const asciiDictionary = new Array(256);
 	for (let i = 0; i < 256; i++) {
@@ -23,16 +26,17 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	}
 	function uint8ArrayToXxd(data: Uint8Array): string {
-		const lines = Math.ceil(data.length / bytePerLine);
+		const lines = Math.ceil(data.length / bytesPerLine);
 		const xxdLines = new Array(lines);
+		const wordSeperator = isDrawUnderscore?'_':' ';
 		for (let line = 0; line < lines; line++) {
-			const chunk = data.slice(line * bytePerLine, (line + 1) * bytePerLine);
+			const chunk = data.slice(line * bytesPerLine, (line + 1) * bytesPerLine);
 			const offset = line.toString(16).padStart(7, '0') + '0';
-			const hexLine = new Array(bytePerLine).fill("   ");
-			const asciiLine = new Array(bytePerLine).fill(" ");
+			const hexLine = new Array(bytesPerLine).fill("   ");
+			const asciiLine = new Array(bytesPerLine).fill(" ");
 			for (let i = 0; i < chunk.length; i++) {
 				const byte = chunk[i];
-				hexLine[i] = hexDictionary[byte] + (i % 4 !== 3 ? ' ' : ' ');
+				hexLine[i] = hexDictionary[byte] + (i % 4 !== 3 ? wordSeperator : ' ');
 				asciiLine[i] = asciiDictionary[byte];
 			}
 			xxdLines[line] = `${offset}: ${hexLine.join('')} | ${asciiLine.join('')}`;
@@ -70,26 +74,26 @@ export function activate(context: vscode.ExtensionContext) {
 		return differentRanges;
 	}
 	const offsetLeft = 10;
-	const offsetRight = offsetLeft + bytePerLine * 4 + 18;
-	const offsetChar = bytePerLine * 3 + 3;
+	const offsetRight = offsetLeft + bytesPerLine * 4 + 18;
+	const offsetChar = bytesPerLine * 3 + 3;
 
 	function convertToVscodeRanges(differentRanges: [number, number][]): [vscode.Range[], vscode.Range[]] {
 		const vscodeRangesIndex: vscode.Range[] = [];
 		const vscodeRangesDisplay: vscode.Range[] = [];
 
 		for (const [start, end] of differentRanges) {
-			const startLine = Math.floor(start / bytePerLine);
-			const startChar = (start % bytePerLine);
-			const startHex = (start % bytePerLine) * 3;
-			const endLine = Math.floor(end / bytePerLine);
-			const endChar = (end % bytePerLine);
-			const endHex = (end % bytePerLine) * 3 - 1;
+			const startLine = Math.floor(start / bytesPerLine);
+			const startChar = (start % bytesPerLine);
+			const startHex = (start % bytesPerLine) * 3;
+			const endLine = Math.floor(end / bytesPerLine);
+			const endChar = (end % bytesPerLine);
+			const endHex = (end % bytesPerLine) * 3 - 1;
 			vscodeRangesIndex.push(new vscode.Range(startLine, offsetLeft + startHex, endLine, offsetRight + offsetChar + endChar));
 			for (let line = startLine; line <= endLine; line++) {
 				const startX = line === startLine ? startHex : 0;
-				const endX = line === endLine ? endHex : (bytePerLine * 3 - 1);
+				const endX = line === endLine ? endHex : (bytesPerLine * 3 - 1);
 				const startXChar = offsetChar + (line === startLine ? startChar : 0);
-				const endXChar = offsetChar + (line === endLine ? endChar : bytePerLine);
+				const endXChar = offsetChar + (line === endLine ? endChar : bytesPerLine);
 				vscodeRangesDisplay.push(new vscode.Range(line, offsetLeft + startX, line, offsetLeft + endX));
 				vscodeRangesDisplay.push(new vscode.Range(line, offsetLeft + startXChar, line, offsetLeft + endXChar));
 				vscodeRangesDisplay.push(new vscode.Range(line, offsetRight + startX, line, offsetRight + endX));
@@ -171,27 +175,41 @@ export function activate(context: vscode.ExtensionContext) {
 	};
 
 	const statusBarPosition = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
-	statusBarPosition.show();
 	function updateStatusBar(event: vscode.TextEditorSelectionChangeEvent) {
+		if (event.textEditor.document.uri.scheme!=='hexdiff') {
+			statusBarPosition.hide();	
+			return;
+		}
+		statusBarPosition.show();
+
 		const currentSelection = event.selections[0].start;
 		let bytePosition: number;
 		switch (true) {
 			case currentSelection.character >= 0 && currentSelection.character < offsetLeft + offsetChar - 1:
-				bytePosition = Math.max(0, Math.min(Math.floor((currentSelection.character - offsetLeft) / 3), bytePerLine - 1));
+				bytePosition = Math.max(0, Math.min(Math.floor((currentSelection.character - offsetLeft) / 3), bytesPerLine - 1));
 				break;
-			case currentSelection.character >= offsetLeft + offsetChar - 1 && currentSelection.character < offsetLeft + offsetChar + bytePerLine + 3:
-				bytePosition = Math.max(0, Math.min(Math.floor((currentSelection.character - (offsetLeft + offsetChar))), bytePerLine - 1));
+			case currentSelection.character >= offsetLeft + offsetChar - 1 && currentSelection.character < offsetLeft + offsetChar + bytesPerLine + 3:
+				bytePosition = Math.max(0, Math.min(Math.floor((currentSelection.character - (offsetLeft + offsetChar))), bytesPerLine - 1));
 				break;
-			case currentSelection.character >= offsetLeft + offsetChar + bytePerLine + 3 && currentSelection.character < offsetRight + offsetChar - 1:
-				bytePosition = Math.max(0, Math.min(Math.floor((currentSelection.character - (offsetRight)) / 3), bytePerLine - 1));
+			case currentSelection.character >= offsetLeft + offsetChar + bytesPerLine + 3 && currentSelection.character < offsetRight + offsetChar - 1:
+				bytePosition = Math.max(0, Math.min(Math.floor((currentSelection.character - (offsetRight)) / 3), bytesPerLine - 1));
 				break;
 			default:
-				bytePosition = Math.max(0, Math.min(Math.floor((currentSelection.character - (offsetRight + offsetChar))), bytePerLine - 1));
+				bytePosition = Math.max(0, Math.min(Math.floor((currentSelection.character - (offsetRight + offsetChar))), bytesPerLine - 1));
 				break;
 		}
-		const currentPosition = currentSelection.line * bytePerLine + bytePosition;
+		const currentPosition = currentSelection.line * bytesPerLine + bytePosition;
 		statusBarPosition.text = `Hexdiff Position: ${currentPosition}(0x${currentPosition.toString(16)})`;
 	}
+    function updateConfiguration() {
+		const config = vscode.workspace.getConfiguration('hexdiff');
+		bytesPerLine = config.get('bytesPerLine',16);
+		isDrawUnderscore = config.get('isDrawUnderscore',false);
+
+    }
+    vscode.workspace.onDidChangeConfiguration(updateConfiguration);
+    updateConfiguration();
+
 	vscode.window.onDidChangeTextEditorSelection(updateStatusBar);
 	context.subscriptions.push(statusBarPosition);
 

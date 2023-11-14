@@ -2,7 +2,8 @@
   "name": "hexdiff",
   "displayName": "hexdiff",
   "description": "compare two binary files",
-  "version": "1.0.231114",
+  "version": "1.0.231115",
+  "publisher": "sj0000e",
   "license": "LICENSE",
   "bugs": {
     "url": "https://github.com/sj0000e/vscode-hexdiff/issues"
@@ -16,9 +17,15 @@
     "vscode": "^1.84.0"
   },
   "keywords": [
-    "vscode",
     "hexdiff",
-    "hexadecimal"
+    "hex",
+    "hexadecimal",
+    "bin",
+    "binary",
+    "bindiff",
+    "diff",
+    "compare",
+    "vscode"
   ],
   "categories": [
     "Other"
@@ -76,8 +83,34 @@
           "title": "next",
           "group": "navigation",
           "when": "resourceScheme =~ /^hexdiff/"
-         }
+        }
       ]
+    },
+    "configuration": {
+      "type": "object",
+      "title": "Hex Diff",
+      "properties": {
+        "hexdiff.bytesPerLine": {
+          "type": "number",
+          "enum": [
+            8,
+            16
+          ],
+          "default": 16,
+          "description": "Number of bytes per line"
+        },
+        "hexdiff.isDrawUnderscore": {
+          "type": "boolean",
+          "default": false,
+          "description": "Check: 00_00_00_00, Clear: 00 00 00 00"
+        },
+        "hexdiff.sizeWarning": {
+          "type": "number",
+          "default": 10485760,
+          "description": "Display a warning if file is larger than this"
+        }
+
+      }
     }
   },
   "scripts": {
