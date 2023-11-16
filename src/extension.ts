@@ -3,9 +3,24 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 export function activate(context: vscode.ExtensionContext) {
-	const config = vscode.workspace.getConfiguration('hexdiff');
-	let bytesPerLine = config['bytesPerLine'];
-	let isDrawUnderscore = config['isDrawUnderscore'];
+	let bytesPerLine:number;
+	let isDrawUnderscore:boolean;
+	let backgroundColor:string;
+	const offsetLeft = 10;
+	let offsetRight:number;
+	let offsetChar:number;
+
+
+    function updateConfiguration() {
+		const config = vscode.workspace.getConfiguration('hexdiff');
+		bytesPerLine = config['bytesPerLine'];
+		isDrawUnderscore = config['isDrawUnderscore'];
+		backgroundColor = config['backgroundColor'];
+		offsetRight = offsetLeft + bytesPerLine * 4 + 18;
+		offsetChar = bytesPerLine * 3 + 3;
+    }
+    updateConfiguration();
+	
 
 	const hexDictionary = new Array(256);
 	const asciiDictionary = new Array(256);
@@ -73,10 +88,6 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 		return differentRanges;
 	}
-	const offsetLeft = 10;
-	const offsetRight = offsetLeft + bytesPerLine * 4 + 18;
-	const offsetChar = bytesPerLine * 3 + 3;
-
 	function convertToVscodeRanges(differentRanges: [number, number][]): [vscode.Range[], vscode.Range[]] {
 		const vscodeRangesIndex: vscode.Range[] = [];
 		const vscodeRangesDisplay: vscode.Range[] = [];
@@ -149,7 +160,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 		if (diffRangesDisplay.length) {
 			await diffViewer.setDecorations(vscode.window.createTextEditorDecorationType({
-				backgroundColor: 'rgba(255, 0, 0, 0.3)'
+				backgroundColor: backgroundColor
 			}), diffRangesDisplay);
 		} else {
 			vscode.window.showInformationMessage(`Files ${path.basename(path1)} and ${path.basename(path1)} are identical!\n${path0} ↔ ${path1}`);
@@ -175,12 +186,13 @@ export function activate(context: vscode.ExtensionContext) {
 	};
 
 	const statusBarPosition = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
+	let statusVisible = false;
 	function updateStatusBar(event: vscode.TextEditorSelectionChangeEvent) {
 		if (event.textEditor.document.uri.scheme!=='hexdiff') {
-			statusBarPosition.hide();	
+			(statusVisible) && statusBarPosition.hide();	
 			return;
 		}
-		statusBarPosition.show();
+		(!statusVisible) && statusBarPosition.show();	
 
 		const currentSelection = event.selections[0].start;
 		let bytePosition: number;
@@ -201,19 +213,12 @@ export function activate(context: vscode.ExtensionContext) {
 		const currentPosition = currentSelection.line * bytesPerLine + bytePosition;
 		statusBarPosition.text = `Hexdiff Position: ${currentPosition}(0x${currentPosition.toString(16)})`;
 	}
-    function updateConfiguration() {
-		const config = vscode.workspace.getConfiguration('hexdiff');
-		bytesPerLine = config.get('bytesPerLine',16);
-		isDrawUnderscore = config.get('isDrawUnderscore',false);
 
-    }
-    vscode.workspace.onDidChangeConfiguration(updateConfiguration);
-    updateConfiguration();
 
 	vscode.window.onDidChangeTextEditorSelection(updateStatusBar);
+	vscode.workspace.onDidChangeConfiguration(updateConfiguration);
+
 	context.subscriptions.push(statusBarPosition);
-
-
 	context.subscriptions.push(vscode.commands.registerCommand('hexdiff.compare', openDiff));
 	context.subscriptions.push(vscode.commands.registerCommand("hexdiff.previous", prevDiff));
 	context.subscriptions.push(vscode.commands.registerCommand("hexdiff.next", nextDiff));

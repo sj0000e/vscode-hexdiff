@@ -2,10 +2,18 @@
 hexdiff for Visual Studio Code
 
 ## Main Features
-* Select two files
-* Hexdiff
+* Compare two binary files in hexadecimal mode
 * Go to next difference(F8)
 * Go to previous difference(F7)
-* Displaying Position on the Status Bar
-![Explorer/Context](Image/menu.png)
-![Editor](Image/editor.png)
+* Display position on the status bar (bottom right)
+  * ![Position](Image/statusbar.png)
+* ![Editor](Image/editor.png)
+* ![Explorer/Context](Image/menu.png)
+
+## Options
+* Bytes per line [8,16]
+* 4bytes chunk
+  * ![4bytes](image/231115.png)
+
+## License
+[MIT](LICENSE.md)

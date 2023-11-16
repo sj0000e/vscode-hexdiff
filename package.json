@@ -1,10 +1,11 @@
 {
   "name": "hexdiff",
   "displayName": "hexdiff",
-  "description": "compare two binary files",
-  "version": "1.0.231115",
+  "description": "Compare two binary files in hexadecimal mode",
+  "version": "1.0.231116",
   "publisher": "sj0000e",
-  "license": "LICENSE",
+  "license": "LICENSE.md",
+  "icon": "icon.png",
   "bugs": {
     "url": "https://github.com/sj0000e/vscode-hexdiff/issues"
   },
@@ -103,6 +104,11 @@
           "type": "boolean",
           "default": false,
           "description": "Check: 00_00_00_00, Clear: 00 00 00 00"
+        },
+        "hexdiff.backgroundColor": {
+          "type": "string",
+          "default": "rgba(255, 0, 0, 0.3)",
+          "description": "Background color for mismatch. ex: rgba(255, 0, 0, 0.3)"
         },
         "hexdiff.sizeWarning": {
           "type": "number",
