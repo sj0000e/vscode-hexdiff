@@ -141,8 +141,8 @@ export function activate(context: vscode.ExtensionContext) {
 	let diffRangesIndexReverse: vscode.Range[];
 	let diffViewer: vscode.TextEditor;
 	async function openDiff(...file: any[]) {
-		const path0 = vscode.Uri.parse(file[1][0]).path;
-		const path1 = vscode.Uri.parse(file[1][1]).path;
+		const path0 = file[1][0].fsPath;
+		const path1 = file[1][1].fsPath;
 		const binaryData0 = readFileToUint8Array(path0);
 		const binaryData1 = readFileToUint8Array(path1);
 		const xxd0 = uint8ArrayToXxd(binaryData0);

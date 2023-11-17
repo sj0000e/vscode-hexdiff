@@ -13,7 +13,7 @@ hexdiff for Visual Studio Code
 ## Options
 * Bytes per line [8,16]
 * 4bytes chunk
-  * ![4bytes](image/231115.png)
+  * ![4bytes](Image/231115.png)
 
 ## License
 [MIT](LICENSE.md)

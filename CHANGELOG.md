@@ -1,10 +1,15 @@
 # Change Log
 
 All notable changes to the "hexdiff" extension will be documented in this file.
+
+## Version 1.0.231117
+- Fix filepath
+
+
 ## Version 1.0.231116
 - Icon!!
 - User setting(background color)
-  - ![background color](image/231116.png)16.png)
+  - ![background color](image/231116.png)
 
 
 ## Version 1.0.231115
