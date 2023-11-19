@@ -1,6 +1,11 @@
 # Change Log
 
 All notable changes to the "hexdiff" extension will be documented in this file.
+## Version 1.1.231119
+- Add overview ruler(minimap)
+- Optimize for speed
+- Fix filepath
+
 
 ## Version 1.0.231117
 - Fix filepath
@@ -9,7 +14,7 @@ All notable changes to the "hexdiff" extension will be documented in this file.
 ## Version 1.0.231116
 - Icon!!
 - User setting(background color)
-  - ![background color](image/231116.png)
+  - ![background color](Image/231116.png)
 
 
 ## Version 1.0.231115
@@ -17,7 +22,7 @@ All notable changes to the "hexdiff" extension will be documented in this file.
 - Add changelog
 - Show hexdiff status bar on hexdiff document
 - User setting (bytes/line, 4bytes print)
-  - ![new](image/231115.png)
+  - ![new](Image/231115.png)
 
 ## Version 1.0.231114
 - Initial release
