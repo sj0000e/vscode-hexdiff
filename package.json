@@ -2,7 +2,7 @@
   "name": "hexdiff",
   "displayName": "hexdiff",
   "description": "Compare two binary files in hexadecimal mode",
-  "version": "1.1.231119",
+  "version": "1.1.231120",
   "publisher": "sj0000e",
   "license": "LICENSE.md",
   "icon": "icon.png",
@@ -15,7 +15,7 @@
     "url": "https://github.com/sj0000e/vscode-hexdiff.git"
   },
   "engines": {
-    "vscode": "^1.84.0"
+    "vscode": "^1.75.1"
   },
   "keywords": [
     "hexdiff",
@@ -117,10 +117,9 @@
         },
         "hexdiff.sizeWarning": {
           "type": "number",
-          "default": 10485760,
+          "default": 2100000,
           "description": "Display a warning if file is larger than this"
         }
-
       }
     }
   },
@@ -133,15 +132,16 @@
     "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
-    "@types/vscode": "^1.84.0",
     "@types/mocha": "^10.0.2",
     "@types/node": "18.x",
+    "@types/vscode": "^1.75.0",
     "@typescript-eslint/eslint-plugin": "^6.7.3",
     "@typescript-eslint/parser": "^6.7.3",
+    "@vscode/test-electron": "^2.3.4",
     "eslint": "^8.50.0",
     "glob": "^10.3.3",
     "mocha": "^10.2.0",
     "typescript": "^5.2.2",
-    "@vscode/test-electron": "^2.3.4"
+    "vscode": "^1.1.34"
   }
 }

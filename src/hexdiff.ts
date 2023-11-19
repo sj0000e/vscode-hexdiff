@@ -5,6 +5,7 @@ import * as path from 'path';
 export const scheme = 'hexdiff';
 
 let bytesPerLine: number;
+let sizeWarning: number;
 let isDrawUnderscore: boolean;
 let backgroundColor: string;
 let overviewRulerColor: string;
@@ -13,9 +14,15 @@ let offsetRight: number;
 let offsetChar: number;
 
 
+function getFileSize(filePath:string) : number {
+    const fileStat = fs.statSync(filePath);
+    return fileStat ? fileStat.size: -1;
+}
+
 export function updateConfiguration() {
     const config = vscode.workspace.getConfiguration('hexdiff');
     bytesPerLine = config['bytesPerLine'];
+    sizeWarning = config['sizeWarning'];
     isDrawUnderscore = config['isDrawUnderscore'];
     backgroundColor = config['backgroundColor'];
     overviewRulerColor = config['overviewRulerColor'];
@@ -176,11 +183,19 @@ let diffRangesIndexReverse: vscode.Range[];
 let diffViewer: vscode.TextEditor;
 export async function openDiff(...file: any[]) {
     startTime = performance.now();
+    
+
     const path0 = file[1][0].fsPath;
     const path1 = file[1][1].fsPath;
+    const size0 = getFileSize(path0);
+    const size1 = getFileSize(path1);
+    if (size0 > sizeWarning || size1 > sizeWarning ) {
+        await vscode.window.showWarningMessage('File is too large to open.', 'OK');
+        return;
+    }
+
     const upath0 = encodeURIComponent(path0);
     const upath1 = encodeURIComponent(path1);
-
     const title = `${path0} ↔ ${path.basename(path1)} `;
     // const title = `${path0} ↔ ${path1} `;
 

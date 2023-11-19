@@ -5,6 +5,7 @@ All notable changes to the "hexdiff" extension will be documented in this file.
 - Add overview ruler(minimap)
 - Optimize for speed
 - Fix filepath
+- Limit file size(2M)
 
 
 ## Version 1.0.231117
