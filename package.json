@@ -2,7 +2,7 @@
   "name": "hexdiff",
   "displayName": "hexdiff",
   "description": "Compare two binary files in hexadecimal mode",
-  "version": "1.1.231120",
+  "version": "1.2.231203",
   "publisher": "sj0000e",
   "license": "LICENSE.md",
   "icon": "icon.png",
@@ -115,10 +115,26 @@
           "default": "rgba(255, 0, 0, 0.3)",
           "description": "Background color for mismatch. ex: rgba(255, 0, 0, 0.8)"
         },
-        "hexdiff.sizeWarning": {
+        "hexdiff.isContrastMode": {
+          "type": "boolean",
+          "default": true,
+          "description": "Hide common data"
+        },
+        "hexdiff.sizeContext": {
+          "type": "number",
+          "default": 64,
+          "minimum": 16,
+          "description": "Context size for contrast mode"
+        },
+        "hexdiff.sizeContrastDisplay": {
+          "type": "number",
+          "default": 1000000,
+          "description": "Display size of contrast mode"
+        },
+        "hexdiff.sizeContrast": {
           "type": "number",
           "default": 2100000,
-          "description": "Display a warning if file is larger than this"
+          "description": "Display a warning and use contrast mode if file is larger than this"
         }
       }
     }

@@ -3,12 +3,14 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 export const scheme = 'hexdiff';
-
-let bytesPerLine: number;
-let sizeWarning: number;
-let isDrawUnderscore: boolean;
-let backgroundColor: string;
-let overviewRulerColor: string;
+let config :vscode.WorkspaceConfiguration;
+    // let config.bytesPerLine: number;
+    // let config.sizeContrast: number;
+    // let config.isDrawUnderscore: boolean;
+    // let config.backgroundColor: string;
+    // let config.overviewRulerColor: string;
+    // let config.isContrastMode: boolean;
+    // let config.sizeContext: number;
 const offsetLeft = 10;
 let offsetRight: number;
 let offsetChar: number;
@@ -20,14 +22,9 @@ function getFileSize(filePath:string) : number {
 }
 
 export function updateConfiguration() {
-    const config = vscode.workspace.getConfiguration('hexdiff');
-    bytesPerLine = config['bytesPerLine'];
-    sizeWarning = config['sizeWarning'];
-    isDrawUnderscore = config['isDrawUnderscore'];
-    backgroundColor = config['backgroundColor'];
-    overviewRulerColor = config['overviewRulerColor'];
-    offsetRight = offsetLeft + bytesPerLine * 4 + 18;
-    offsetChar = bytesPerLine * 3 + 3;
+    config = vscode.workspace.getConfiguration('hexdiff');
+    offsetRight = offsetLeft + config.bytesPerLine * 4 + 18;
+    offsetChar = config.bytesPerLine * 3 + 3;
 }
 
 
@@ -49,26 +46,58 @@ function readFileToUint8Array(filePath: string): Uint8Array {
         return new Uint8Array(0);
     }
 }
-function uint8ArrayToXxd(data: Uint8Array): string {
-    const lines = Math.ceil(data.length / bytesPerLine);
-    const xxdLines = new Array(lines);
-    const wordSeperator = isDrawUnderscore ? '_' : ' ';
-    for (let line = 0; line < lines; line++) {
-        const chunk = data.slice(line * bytesPerLine, (line + 1) * bytesPerLine);
+function uint8ArrayToXxd(data: Uint8Array,startByte: number, endByte: number): string {
+    const startLine = Math.floor(startByte/config.bytesPerLine);
+    const endLine = Math.ceil(endByte/config.bytesPerLine);
+    const xxdLines = new Array(endLine-startLine);
+    const wordSeperator = config.isDrawUnderscore ? '_' : ' ';
+    for (let line = startLine; line < endLine; line++) {
+        const chunk = data.slice(line * config.bytesPerLine, (line + 1) * config.bytesPerLine);
         const offset = line.toString(16).padStart(7, '0') + '0';
-        const hexLine = new Array(bytesPerLine).fill("   ");
-        const asciiLine = new Array(bytesPerLine).fill(" ");
+        const hexLine = new Array(config.bytesPerLine).fill("   ");
+        const asciiLine = new Array(config.bytesPerLine).fill(" ");
         for (let i = 0; i < chunk.length; i++) {
             const byte = chunk[i];
             hexLine[i] = hexDictionary[byte] + (i % 4 !== 3 ? wordSeperator : ' ');
             asciiLine[i] = asciiDictionary[byte];
         }
-        xxdLines[line] = `${offset}: ${hexLine.join('')} | ${asciiLine.join('')}`;
+        xxdLines[line-startLine] = `${offset}: ${hexLine.join('')} | ${asciiLine.join('')}`;
     }
     return xxdLines.join('\n');
 }
-function findBinaryDifferentRanges(arr1: Uint8Array, arr2: Uint8Array): [number, number][] {
-    const differentRanges: [number, number][] = [];
+interface Range {
+    start: number;
+    end: number;
+}
+
+function mergeRanges(ranges: Range[],endLimit:number): [Range, Range[]][] {
+    const mergedRanges:[Range, Range[]][] = [];
+    let withContext = {...ranges[0]};
+    withContext.start = Math.max(0, Math.floor((withContext.start-config.sizeContext)/config.bytesPerLine)*config.bytesPerLine);
+    withContext.end = Math.min(endLimit,withContext.end+config.sizeContext);
+    let sourceRanges = [ranges[0]];
+    sourceRanges[0].end = Math.min(endLimit,sourceRanges[0].end);
+    for (let i = 1; i < ranges.length; i++) {
+        const current = ranges[i];
+        current.end = Math.min(endLimit,current.end);
+        if (current.start - withContext.end <= config.sizeContext) { //merge
+            withContext.end = Math.min(endLimit,current.end+config.sizeContext);;
+            sourceRanges.push(current);
+        } else {
+            mergedRanges.push([withContext,sourceRanges]);
+            withContext = {...current};
+            withContext.start = Math.floor((withContext.start-config.sizeContext)/config.bytesPerLine)*config.bytesPerLine;
+            withContext.end = Math.min(endLimit,current.end+config.sizeContext);;
+            sourceRanges=[current];
+        }
+    }
+    mergedRanges.push([withContext,sourceRanges]);
+    return mergedRanges;
+}
+
+
+function findBinaryDifferentRanges(arr1: Uint8Array, arr2: Uint8Array): Range[] {
+    const differentRanges: Range[] = [];
     let start: number = -1;
     let end: number = -1;
     let isDiffStart: boolean = false;
@@ -84,56 +113,58 @@ function findBinaryDifferentRanges(arr1: Uint8Array, arr2: Uint8Array): [number,
         } else {
             if (arr1[i] === arr2[i]) {
                 end = i;
-                differentRanges.push([start, end]);
+                differentRanges.push({start:start, end:end});
                 isDiffStart = false;
             }
         }
     }
 
     if (isDiffStart) {
-        differentRanges.push([start, maxLength]);
+        differentRanges.push({start:start, end:maxLength});
     } else if (minLength !== maxLength) {
-        differentRanges.push([minLength, maxLength]);
+        differentRanges.push({start:minLength, end:maxLength});
     }
     return differentRanges;
 }
-function convertToVscodeRanges(differentRanges: [number, number][]): [vscode.Range[], vscode.Range[]] {
+function convertToVscodeRanges(differentRanges: Range[],rangeStart:number,displayLine:number): [vscode.Range[], vscode.Range[]] {
     const vscodeRangesIndex: vscode.Range[] = [];
     const vscodeRangesDisplay: vscode.Range[] = [];
 
-    for (const [start, end] of differentRanges) {
-        const startLine = Math.floor(start / bytesPerLine);
-        const startChar = (start % bytesPerLine);
-        const startHex = (start % bytesPerLine) * 3;
-        const endLine = Math.floor(end / bytesPerLine);
-        const endChar = (end % bytesPerLine);
-        const endHex = (end % bytesPerLine) * 3 - 1;
-        vscodeRangesIndex.push(new vscode.Range(startLine, offsetLeft + startHex, endLine, offsetRight + offsetChar + endChar));
+    for (const {start, end} of differentRanges) {
+        const startDiff = start -rangeStart;
+        const endDiff = end -rangeStart;
+        const startLine = Math.floor(startDiff / config.bytesPerLine);
+        const startChar = (startDiff % config.bytesPerLine);
+        const startHex = (startDiff % config.bytesPerLine) * 3;
+        const endLine = Math.floor(endDiff / config.bytesPerLine);
+        const endChar = (endDiff % config.bytesPerLine);
+        const endHex = (endDiff % config.bytesPerLine) * 3 - 1;
+        vscodeRangesIndex.push(new vscode.Range(displayLine+startLine, offsetLeft + startHex, displayLine+endLine, offsetRight + offsetChar + endChar));
         for (let line = startLine; line <= endLine; line++) {
             const startX = line === startLine ? startHex : 0;
-            const endX = line === endLine ? endHex : (bytesPerLine * 3 - 1);
+            const endX = line === endLine ? endHex : (config.bytesPerLine * 3 - 1);
             const startXChar = offsetChar + (line === startLine ? startChar : 0);
-            const endXChar = offsetChar + (line === endLine ? endChar : bytesPerLine);
-            vscodeRangesDisplay.push(new vscode.Range(line, offsetLeft + startX, line, offsetLeft + endX));
-            vscodeRangesDisplay.push(new vscode.Range(line, offsetLeft + startXChar, line, offsetLeft + endXChar));
-            vscodeRangesDisplay.push(new vscode.Range(line, offsetRight + startX, line, offsetRight + endX));
-            vscodeRangesDisplay.push(new vscode.Range(line, offsetRight + startXChar, line, offsetRight + endXChar));
+            const endXChar = offsetChar + (line === endLine ? endChar : config.bytesPerLine);
+            vscodeRangesDisplay.push(new vscode.Range(displayLine+line, offsetLeft + startX, displayLine+line, offsetLeft + endX));
+            vscodeRangesDisplay.push(new vscode.Range(displayLine+line, offsetLeft + startXChar, displayLine+line, offsetLeft + endXChar));
+            vscodeRangesDisplay.push(new vscode.Range(displayLine+line, offsetRight + startX, displayLine+line, offsetRight + endX));
+            vscodeRangesDisplay.push(new vscode.Range(displayLine+line, offsetRight + startXChar, displayLine+line, offsetRight + endXChar));
         }
     }
     return [vscodeRangesIndex, vscodeRangesDisplay];
 }
-function combineLines(input1: string, input2: string): string {
+function combineLines(input1: string, input2: string): [string,number] {
     const lines1 = input1.split('\n');
     const lines2 = input2.split('\n');
     const combinedLines: string[] = [];
     const maxLines = Math.max(lines1.length, lines2.length);
 
     for (let i = 0; i < maxLines; i++) {
-        const line1 = i < lines1.length ? lines1[i] : ' '.repeat(92); // lines1의 i번째 라인 또는 빈 문자열
-        const line2 = i < lines2.length ? lines2[i] : ' '.repeat(92); // lines2의 i번째 라인 또는 빈 문자열
+        const line1 = i < lines1.length ? lines1[i] : ' '.repeat(config.bytesPerLine*4+13); // lines1의 i번째 라인 또는 빈 문자열
+        const line2 = i < lines2.length ? lines2[i] : ' '.repeat(config.bytesPerLine*4+13); // lines2의 i번째 라인 또는 빈 문자열
         combinedLines.push(`${line1}  |  ${line2}`);
     }
-    return combinedLines.join('\n');
+    return [combinedLines.join('\n'),maxLines];
 }
 
 let startTime: number;
@@ -143,23 +174,53 @@ export const docProvider = new class implements vscode.TextDocumentContentProvid
     provideTextDocumentContent(uri: vscode.Uri): string {
         // console.log(`show mid: ${performance.now()-startTime} ms`);
 
-        updateConfiguration();
 
         const path0 = decodeURIComponent(uri.query);
         const path1 = decodeURIComponent(uri.fragment);
-        const binaryData0 = readFileToUint8Array(path0);
-        const binaryData1 = readFileToUint8Array(path1);
+        const binary0 = readFileToUint8Array(path0);
+        const binary1 = readFileToUint8Array(path1);
+        const diffRanges = findBinaryDifferentRanges(binary0, binary1);
+        let xxdRanges:[Range, Range[]][];
+        const isContrastMode = config.isContrastMode|| (Math.max(binary0.length,binary1.length) > config.sizeContrast) ;
+        if(isContrastMode) {
+            const endLimit = Math.ceil((Math.min(binary0.length,binary1.length)+config.sizeContext)/config.bytesPerLine)*config.bytesPerLine;
+            diffRanges[diffRanges.length-1].end = Math.min(diffRanges[diffRanges.length-1].end,endLimit);
+            xxdRanges = mergeRanges(diffRanges, endLimit);
+        } else {
+            xxdRanges = [[{start:0,end:Math.max(binary0.length,binary1.length)},diffRanges]];
+        }
+        let contents = "";
+        let displayLine = 0;
+        let displaySize = 0;
+        diffRangesIndex = [];
+        diffRangesDisplay = [];
+        for(const [xxdRange_,sourceRanges] of xxdRanges){
+            let xxdRange = xxdRange_;
+            const nextSize = displaySize + xxdRange.end - xxdRange.start;
+            if( nextSize > config.sizeContrastDisplay) {
+                xxdRange.end -= config.sizeContrastDisplay - displaySize;
+            }
+            const xxd0 = uint8ArrayToXxd(binary0,xxdRange.start,xxdRange.end);
+            const xxd1 = uint8ArrayToXxd(binary1,xxdRange.start,xxdRange.end);
+            const [xxdCombined, xxdLine] = combineLines(xxd0, xxd1);
+            contents += xxdCombined+'\n\n';
+            const [rangesIndex, rangesDisplay] = convertToVscodeRanges(sourceRanges,xxdRange.start,displayLine);
+            diffRangesIndex = [...diffRangesIndex,...rangesIndex];
+            diffRangesDisplay = [...diffRangesDisplay,...rangesDisplay];
+            displaySize += xxdRange.end - xxdRange.start;
+            displayLine += xxdLine+1;
+            if( nextSize > config.sizeContrastDisplay) {
+                break;
+            }
+
+        }
         // console.log(`read time: ${performance.now()-startTime} ms`);
-        const xxd0 = uint8ArrayToXxd(binaryData0);
-        const xxd1 = uint8ArrayToXxd(binaryData1);
         // console.log(`xxd time: ${performance.now()-startTime} ms`);
 
 
-        const diffs = findBinaryDifferentRanges(binaryData0, binaryData1);
-        [diffRangesIndex, diffRangesDisplay] = convertToVscodeRanges(diffs);
         diffRangesIndexReverse = [...diffRangesIndex].reverse();
 
-        const contents = combineLines(xxd0, xxd1);
+        //  contents = combineLines(xxd0, xxd1);
 
 
 
@@ -183,32 +244,32 @@ let diffRangesIndexReverse: vscode.Range[];
 let diffViewer: vscode.TextEditor;
 export async function openDiff(...file: any[]) {
     startTime = performance.now();
-    
+    updateConfiguration();
+
 
     const path0 = file[1][0].fsPath;
     const path1 = file[1][1].fsPath;
     const size0 = getFileSize(path0);
     const size1 = getFileSize(path1);
-    if (size0 > sizeWarning || size1 > sizeWarning ) {
-        await vscode.window.showWarningMessage('File is too large to open.', 'OK');
-        return;
+    if (size0 > config.sizeContrast || size1 > config.sizeContrast ) {
+        vscode.window.showInformationMessage('File is too large, open with contrast mode.');
     }
 
-    const upath0 = encodeURIComponent(path0);
-    const upath1 = encodeURIComponent(path1);
+    const uriPath0 = encodeURIComponent(path0);
+    const uriPath1 = encodeURIComponent(path1);
     const title = `${path0} ↔ ${path.basename(path1)} `;
     // const title = `${path0} ↔ ${path1} `;
 
     // console.log(`combine time: ${performance.now()-startTime} ms`);
-    const hexdiffUri = vscode.Uri.from({scheme:scheme, path:title, query:upath0, fragment:upath1});
+    const hexdiffUri = vscode.Uri.from({scheme:scheme, path:title, query:uriPath0, fragment:uriPath1});
     // console.log(`show start: ${performance.now()-startTime} ms`);
     diffViewer = await vscode.window.showTextDocument(hexdiffUri);
     // console.log(`show time: ${performance.now()-startTime} ms`);
 
     if (diffRangesDisplay.length) {
         await diffViewer.setDecorations(vscode.window.createTextEditorDecorationType({
-            backgroundColor: backgroundColor,
-            overviewRulerColor: overviewRulerColor
+            backgroundColor: config.backgroundColor,
+            overviewRulerColor: config.overviewRulerColor
         }), diffRangesDisplay);
     } else {
         vscode.window.showInformationMessage(`Files ${path.basename(path1)} and ${path.basename(path1)} are identical!\n${path0} ↔ ${path1}`);
@@ -242,25 +303,26 @@ export function updateStatusBar(event: vscode.TextEditorSelectionChangeEvent) {
         return;
     }
     (!statusVisible) && positionStatusBar.show();
-
     const currentSelection = event.selections[0].start;
+    const lineText = event.textEditor.document.lineAt(currentSelection.line).text;
+    const address = parseInt(lineText.split(/(\:)/)[0],16);
     let bytePosition: number;
     switch (true) {
         case currentSelection.character >= 0 && currentSelection.character < offsetLeft + offsetChar - 1:
-            bytePosition = Math.max(0, Math.min(Math.floor((currentSelection.character - offsetLeft) / 3), bytesPerLine - 1));
+            bytePosition = Math.max(0, Math.min(Math.floor((currentSelection.character - offsetLeft) / 3), config.bytesPerLine - 1));
             break;
-        case currentSelection.character >= offsetLeft + offsetChar - 1 && currentSelection.character < offsetLeft + offsetChar + bytesPerLine + 3:
-            bytePosition = Math.max(0, Math.min(Math.floor((currentSelection.character - (offsetLeft + offsetChar))), bytesPerLine - 1));
+        case currentSelection.character >= offsetLeft + offsetChar - 1 && currentSelection.character < offsetLeft + offsetChar + config.bytesPerLine + 3:
+            bytePosition = Math.max(0, Math.min(Math.floor((currentSelection.character - (offsetLeft + offsetChar))), config.bytesPerLine - 1));
             break;
-        case currentSelection.character >= offsetLeft + offsetChar + bytesPerLine + 3 && currentSelection.character < offsetRight + offsetChar - 1:
-            bytePosition = Math.max(0, Math.min(Math.floor((currentSelection.character - (offsetRight)) / 3), bytesPerLine - 1));
+        case currentSelection.character >= offsetLeft + offsetChar + config.bytesPerLine + 3 && currentSelection.character < offsetRight + offsetChar - 1:
+            bytePosition = Math.max(0, Math.min(Math.floor((currentSelection.character - (offsetRight)) / 3), config.bytesPerLine - 1));
             break;
         default:
-            bytePosition = Math.max(0, Math.min(Math.floor((currentSelection.character - (offsetRight + offsetChar))), bytesPerLine - 1));
+            bytePosition = Math.max(0, Math.min(Math.floor((currentSelection.character - (offsetRight + offsetChar))), config.bytesPerLine - 1));
             break;
     }
-    const currentPosition = currentSelection.line * bytesPerLine + bytePosition;
-    positionStatusBar.text = `Hexdiff Position: ${currentPosition}(0x${currentPosition.toString(16)})`;
+    const currentPosition = address + bytePosition;
+    if (!isNaN(currentPosition))    positionStatusBar.text = `Hexdiff Position: ${currentPosition}(0x${currentPosition.toString(16).toUpperCase()})`;
 }
 
 

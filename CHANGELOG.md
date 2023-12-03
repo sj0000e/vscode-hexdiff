@@ -1,8 +1,14 @@
 # Change Log
 
 All notable changes to the "hexdiff" extension will be documented in this file.
+
+
+## Version 1.2
+- Contrast mode!! (Hide common data)
+ - ![Contrast Mode](Image/231203.png)
+
 ## Version 1.1.231119
-- Add overview ruler(minimap)
+- Add overview ruler(minimap)!
 - Optimize for speed
 - Fix filepath
 - Limit file size(2M)
