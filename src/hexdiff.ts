@@ -185,8 +185,8 @@ export const docProvider = new class implements vscode.TextDocumentContentProvid
         const isContrastMode = config.isContrastMode|| (Math.max(binary0.length,binary1.length) > config.sizeContrast) ;
         const endLimit = Math.ceil((Math.min(binary0.length, binary1.length)+config.sizeContext)/config.bytesPerLine)*config.bytesPerLine;
         if (diffRanges.length === 0) {
-            vscode.window.showInformationMessage(`Files ${path.basename(path0)} and ${path.basename(path1)} are identical!\n${path0} ↔ ${path1}`);
-            contents += `\t\t\tFiles ${path.basename(path0)} and ${path.basename(path1)} are identical!\n${path0} ↔ ${path1}\n\n`;
+            vscode.window.showInformationMessage(`Files "${path.basename(path0)}" and "${path.basename(path1)}" are identical!\n${path0} ↔ ${path1}`);
+            contents += `\t\t\tFiles "${path.basename(path0)}" and "${path.basename(path1)}" are identical!\n${path0} ↔ ${path1}\n\n`;
             xxdRanges = [[{start:0,end:Math.min(Math.max(binary0.length, binary1.length), endLimit)},diffRanges]];
         }
         else if(isContrastMode) {

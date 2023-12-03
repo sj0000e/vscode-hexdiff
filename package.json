@@ -2,7 +2,7 @@
   "name": "hexdiff",
   "displayName": "hexdiff",
   "description": "Compare two binary files in hexadecimal mode",
-  "version": "1.2.231203",
+  "version": "1.2.231204",
   "publisher": "sj0000e",
   "license": "LICENSE.md",
   "icon": "icon.png",
