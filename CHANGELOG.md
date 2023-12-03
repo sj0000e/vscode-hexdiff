@@ -2,8 +2,10 @@
 
 All notable changes to the "hexdiff" extension will be documented in this file.
 
+## Version 1.2.231204
+- Fix Identical file message
 
-## Version 1.2
+## Version 1.2.231203
 - Contrast mode!! (Hide common data)
  - ![Contrast Mode](Image/231203.png)
 
@@ -13,16 +15,13 @@ All notable changes to the "hexdiff" extension will be documented in this file.
 - Fix filepath
 - Limit file size(2M)
 
-
 ## Version 1.0.231117
 - Fix filepath
-
 
 ## Version 1.0.231116
 - Icon!!
 - User setting(background color)
   - ![background color](Image/231116.png)
-
 
 ## Version 1.0.231115
 - Add keywords(for search)

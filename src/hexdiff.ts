@@ -181,15 +181,20 @@ export const docProvider = new class implements vscode.TextDocumentContentProvid
         const binary1 = readFileToUint8Array(path1);
         const diffRanges = findBinaryDifferentRanges(binary0, binary1);
         let xxdRanges:[Range, Range[]][];
+        let contents = "";
         const isContrastMode = config.isContrastMode|| (Math.max(binary0.length,binary1.length) > config.sizeContrast) ;
-        if(isContrastMode) {
-            const endLimit = Math.ceil((Math.min(binary0.length,binary1.length)+config.sizeContext)/config.bytesPerLine)*config.bytesPerLine;
-            diffRanges[diffRanges.length-1].end = Math.min(diffRanges[diffRanges.length-1].end,endLimit);
+        const endLimit = Math.ceil((Math.min(binary0.length, binary1.length)+config.sizeContext)/config.bytesPerLine)*config.bytesPerLine;
+        if (diffRanges.length === 0) {
+            vscode.window.showInformationMessage(`Files ${path.basename(path0)} and ${path.basename(path1)} are identical!\n${path0} ↔ ${path1}`);
+            contents += `\t\t\tFiles ${path.basename(path0)} and ${path.basename(path1)} are identical!\n${path0} ↔ ${path1}\n\n`;
+            xxdRanges = [[{start:0,end:Math.min(Math.max(binary0.length, binary1.length), endLimit)},diffRanges]];
+        }
+        else if(isContrastMode) {
+            diffRanges[diffRanges.length-1].end = Math.min(diffRanges[diffRanges.length-1].end, endLimit);
             xxdRanges = mergeRanges(diffRanges, endLimit);
         } else {
-            xxdRanges = [[{start:0,end:Math.max(binary0.length,binary1.length)},diffRanges]];
+            xxdRanges = [[{start:0,end:Math.max(binary0.length, binary1.length)}, diffRanges]];
         }
-        let contents = "";
         let displayLine = 0;
         let displaySize = 0;
         diffRangesIndex = [];
@@ -198,7 +203,7 @@ export const docProvider = new class implements vscode.TextDocumentContentProvid
             let xxdRange = xxdRange_;
             const nextSize = displaySize + xxdRange.end - xxdRange.start;
             if( nextSize > config.sizeContrastDisplay) {
-                xxdRange.end -= config.sizeContrastDisplay - displaySize;
+                xxdRange.end = xxdRange.start+(config.sizeContrastDisplay - displaySize);
             }
             const xxd0 = uint8ArrayToXxd(binary0,xxdRange.start,xxdRange.end);
             const xxd1 = uint8ArrayToXxd(binary1,xxdRange.start,xxdRange.end);
@@ -271,9 +276,7 @@ export async function openDiff(...file: any[]) {
             backgroundColor: config.backgroundColor,
             overviewRulerColor: config.overviewRulerColor
         }), diffRangesDisplay);
-    } else {
-        vscode.window.showInformationMessage(`Files ${path.basename(path1)} and ${path.basename(path1)} are identical!\n${path0} ↔ ${path1}`);
-    }
+    } 
     // console.log(`doc end: ${performance.now()-startTime} ms`);
 
 };
