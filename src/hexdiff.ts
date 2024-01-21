@@ -6,7 +6,7 @@ export const scheme = 'hexdiff';
 let config :vscode.WorkspaceConfiguration;
     // let config.bytesPerLine: number;
     // let config.sizeContrast: number;
-    // let config.isDrawUnderscore: boolean;
+    // let config.defaultMode: string;
     // let config.backgroundColor: string;
     // let config.overviewRulerColor: string;
     // let config.isContrastMode: boolean;
@@ -182,7 +182,7 @@ export const docProvider = new class implements vscode.TextDocumentContentProvid
         const diffRanges = findBinaryDifferentRanges(binary0, binary1);
         let xxdRanges:[Range, Range[]][];
         let contents = "";
-        const isContrastMode = config.isContrastMode|| (Math.max(binary0.length,binary1.length) > config.sizeContrast) ;
+        const isContrastMode = (config.defaultMode === "Contrast")|| (Math.max(binary0.length,binary1.length) > config.sizeContrast) ;
         const endLimit = Math.ceil((Math.min(binary0.length, binary1.length)+config.sizeContext)/config.bytesPerLine)*config.bytesPerLine;
         if (diffRanges.length === 0) {
             vscode.window.showInformationMessage(`Files "${path.basename(path0)}" and "${path.basename(path1)}" are identical!\n${path0} ↔ ${path1}`);

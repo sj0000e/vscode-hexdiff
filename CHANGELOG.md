@@ -2,6 +2,10 @@
 
 All notable changes to the "hexdiff" extension will be documented in this file.
 
+## Version 1.2.240121
+- Change user setting (bool to enum type)
+- Add [[README.md#User manual]]
+
 ## Version 1.2.231204
 - Fix Identical file message
 

@@ -2,7 +2,7 @@
   "name": "hexdiff",
   "displayName": "hexdiff",
   "description": "Compare two binary files in hexadecimal mode",
-  "version": "1.2.231204",
+  "version": "1.2.240121",
   "publisher": "sj0000e",
   "license": "LICENSE.md",
   "icon": "icon.png",
@@ -26,7 +26,9 @@
     "bindiff",
     "diff",
     "compare",
-    "vscode"
+    "vscode",
+    "editor",
+    "hexeditor"
   ],
   "categories": [
     "Other"
@@ -68,11 +70,11 @@
       "explorer/context": [
         {
           "command": "hexdiff.compare",
-          "group": "3_compare",
-          "when": "listDoubleSelection"
+          "group": "3_compare"
+          ,"when": "listDoubleSelection"
         }
       ],
-      "editor/title": [
+       "editor/title": [
         {
           "command": "hexdiff.previous",
           "title": "previous",
@@ -91,6 +93,21 @@
       "type": "object",
       "title": "Hex Diff",
       "properties": {
+        "hexdiff.defaultMode": {
+          "type": "string",
+          "enum": [
+            "Contrast",
+            "Compare"
+          ],
+          "default": "Contrast",
+          "description": "Compare mode shows the entire file, Contrast mode shows difference and the context around them"
+        },
+        "hexdiff.sizeContext": {
+          "type": "number",
+          "default": 64,
+          "minimum": 16,
+          "description": "Context size for contrast mode"
+        },
         "hexdiff.bytesPerLine": {
           "type": "number",
           "enum": [
@@ -114,17 +131,6 @@
           "type": "string",
           "default": "rgba(255, 0, 0, 0.3)",
           "description": "Background color for mismatch. ex: rgba(255, 0, 0, 0.8)"
-        },
-        "hexdiff.isContrastMode": {
-          "type": "boolean",
-          "default": true,
-          "description": "Hide common data"
-        },
-        "hexdiff.sizeContext": {
-          "type": "number",
-          "default": 64,
-          "minimum": 16,
-          "description": "Context size for contrast mode"
         },
         "hexdiff.sizeContrastDisplay": {
           "type": "number",
